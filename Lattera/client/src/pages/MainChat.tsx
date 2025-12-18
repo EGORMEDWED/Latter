@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { Search, Send, Paperclip, Smile, Mic, Video, Phone, MoreVertical } from 'lucide-react';
+
+import type { NavigateFn } from '../routes';
+
 import Logo from '../components/Logo';
 
 interface User {
@@ -90,7 +93,7 @@ const MOCK_MESSAGES: Message[] = [
   },
 ];
 
-export default function MainChat({ onNavigate }: { onNavigate: (path: string) => void }) {
+export default function MainChat({ onNavigate }: { onNavigate: NavigateFn }) {
   const [selectedChatId, setSelectedChatId] = useState<string>('1');
   const [message, setMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');

@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { Search as SearchIcon, X, Filter } from 'lucide-react';
+
+import type { NavigateFn } from '../routes';
+
 import Logo from '../components/Logo';
 import Button from '../components/ui/Button';
 
@@ -80,7 +83,7 @@ const MOCK_USERS: User[] = [
   },
 ];
 
-export default function Search({ onNavigate }: { onNavigate: (path: string) => void }) {
+export default function Search({ onNavigate }: { onNavigate: NavigateFn }) {
   const [selectedCategory, setSelectedCategory] = useState('Все');
   const [companyFilter, setCompanyFilter] = useState('');
   const [skillsFilter, setSkillsFilter] = useState<string[]>([]);

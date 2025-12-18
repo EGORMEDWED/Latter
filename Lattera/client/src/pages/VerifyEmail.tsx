@@ -1,26 +1,90 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { Mail } from 'lucide-react';
+
 import Button from '../components/ui/Button';
 import Logo from '../components/Logo';
 
+import { api } from '../services/api';
+import { ApiError } from '../utils/apiClient';
+import { useApp } from '../contexts/AppContext';
+import type { NavigateFn } from '../routes';
+
 interface VerifyEmailProps {
   email: string;
-  onNavigate: (path: string) => void;
+  password?: string;
+  onNavigate: NavigateFn;
 }
 
-export default function VerifyEmail({ email, onNavigate }: VerifyEmailProps) {
+export default function VerifyEmail({ email, password, onNavigate }: VerifyEmailProps) {
+  const { addToast, refreshSession } = useApp();
+
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [timer, setTimer] = useState(59);
   const [loading, setLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
   const [error, setError] = useState('');
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
-    const interval = setInterval(() => {
+    if (!email) {
+      addToast('error', 'Сначала введите email и пароль');
+      onNavigate('/auth/signup');
+    }
+  }, [addToast, email, onNavigate]);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
       setTimer((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
-    return () => clearInterval(interval);
+    return () => window.clearInterval(interval);
   }, []);
+
+  const triggerShake = () => {
+    const inputs = document.querySelectorAll('.code-input');
+    inputs.forEach((input) => {
+      input.classList.add('animate-shake');
+    });
+    window.setTimeout(() => {
+      inputs.forEach((input) => {
+        input.classList.remove('animate-shake');
+      });
+    }, 500);
+  };
+
+  const handleVerify = async (fullCode: string) => {
+    if (loading) return;
+
+    if (!/^\d{6}$/.test(fullCode)) {
+      setError('Введите 6-значный код');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await api.auth.verifyEmail({ email: email.trim().toLowerCase(), code: fullCode });
+      await refreshSession();
+      addToast('success', 'Почта подтверждена');
+      onNavigate('/onboarding/profile');
+    } catch (err) {
+      let message = 'Не удалось подтвердить код';
+
+      if (err instanceof ApiError) {
+        if (err.statusCode === 401) {
+          message = 'Неверный или просроченный код';
+        } else {
+          message = err.message;
+        }
+      }
+
+      addToast('error', message);
+      setError(message);
+      setCode(['', '', '', '', '', '']);
+      inputsRef.current[0]?.focus();
+      triggerShake();
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleChange = (index: number, value: string) => {
     if (!/^\d*$/.test(value)) return;
@@ -35,44 +99,42 @@ export default function VerifyEmail({ email, onNavigate }: VerifyEmailProps) {
     }
 
     if (newCode.every((digit) => digit) && newCode.join('').length === 6) {
-      handleVerify(newCode.join(''));
+      void handleVerify(newCode.join(''));
     }
   };
 
-  const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
+  const handleKeyDown = (index: number, e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Backspace' && !code[index] && index > 0) {
       inputsRef.current[index - 1]?.focus();
     }
   };
 
-  const handleVerify = async (fullCode: string) => {
-    setLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+  const handleResend = async () => {
+    if (timer > 0 || resendLoading) return;
 
-    if (fullCode === '123456') {
-      onNavigate('/onboarding/profile');
-    } else {
-      setError('Неверный код');
-      setCode(['', '', '', '', '', '']);
-      inputsRef.current[0]?.focus();
-
-      const inputs = document.querySelectorAll('.code-input');
-      inputs.forEach((input) => {
-        input.classList.add('animate-shake');
-      });
-      setTimeout(() => {
-        inputs.forEach((input) => {
-          input.classList.remove('animate-shake');
-        });
-      }, 500);
+    if (!email || !password) {
+      addToast('error', 'Чтобы отправить код повторно, вернитесь на регистрацию');
+      onNavigate('/auth/signup');
+      return;
     }
-    setLoading(false);
-  };
 
-  const handleResend = () => {
-    setTimer(59);
-    setCode(['', '', '', '', '', '']);
-    setError('');
+    setResendLoading(true);
+    try {
+      await api.auth.register({ email: email.trim().toLowerCase(), password });
+      addToast('success', 'Код отправлен повторно');
+      setTimer(59);
+      setCode(['', '', '', '', '', '']);
+      setError('');
+      inputsRef.current[0]?.focus();
+    } catch (err) {
+      if (err instanceof ApiError) {
+        addToast('error', err.message);
+      } else {
+        addToast('error', 'Не удалось отправить код');
+      }
+    } finally {
+      setResendLoading(false);
+    }
   };
 
   return (
@@ -85,11 +147,10 @@ export default function VerifyEmail({ email, onNavigate }: VerifyEmailProps) {
           <div className="w-16 h-16 bg-gradient-to-br from-[#2290FF] to-[#0066CC] rounded-2xl flex items-center justify-center mx-auto mb-6 animate-in zoom-in duration-700 delay-200">
             <Mail size={32} className="text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-[#1A1A1A] mb-2">
-            Проверьте почту
-          </h1>
+          <h1 className="text-3xl font-bold text-[#1A1A1A] mb-2">Проверьте почту</h1>
           <p className="text-[#6B7280]">
-            Мы отправили код на <span className="font-medium text-[#1A1A1A]">{email}</span>
+            Мы отправили код на{' '}
+            <span className="font-medium text-[#1A1A1A]">{email}</span>
           </p>
         </div>
 
@@ -98,7 +159,9 @@ export default function VerifyEmail({ email, onNavigate }: VerifyEmailProps) {
             {code.map((digit, index) => (
               <input
                 key={index}
-                ref={(el) => (inputsRef.current[index] = el)}
+                ref={(el) => {
+                  inputsRef.current[index] = el;
+                }}
                 type="text"
                 inputMode="numeric"
                 maxLength={1}
@@ -122,7 +185,7 @@ export default function VerifyEmail({ email, onNavigate }: VerifyEmailProps) {
           )}
 
           <Button
-            onClick={() => code.every((d) => d) && handleVerify(code.join(''))}
+            onClick={() => void handleVerify(code.join(''))}
             disabled={!code.every((d) => d)}
             loading={loading}
             className="w-full"
@@ -140,10 +203,11 @@ export default function VerifyEmail({ email, onNavigate }: VerifyEmailProps) {
               </p>
             ) : (
               <button
-                onClick={handleResend}
-                className="text-[#2290FF] hover:underline font-medium"
+                onClick={() => void handleResend()}
+                disabled={resendLoading}
+                className="text-[#2290FF] hover:underline font-medium disabled:opacity-50"
               >
-                Отправить код повторно
+                {resendLoading ? 'Отправляем…' : 'Отправить код повторно'}
               </button>
             )}
           </div>

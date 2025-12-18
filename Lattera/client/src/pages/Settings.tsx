@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { User, Lock, Bell, LogOut, Camera } from 'lucide-react';
+
+import type { NavigateFn } from '../routes';
+
 import Logo from '../components/Logo';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 import { useApp } from '../contexts/AppContext';
 
-export default function Settings({ onNavigate }: { onNavigate: (path: string) => void }) {
+export default function Settings({ onNavigate }: { onNavigate: NavigateFn }) {
   const { addToast } = useApp();
   const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'notifications'>('profile');
   const [showPasswordModal, setShowPasswordModal] = useState(false);
