@@ -3,10 +3,15 @@ import { Loader2, CheckCheck, Check, Play, Volume2 } from 'lucide-react';
 import type { MessageWithSenderResponse, MessageResponse } from '../types/api';
 import { useApp } from '../contexts/AppContext';
 
+type MessageWithFlags = MessageWithSenderResponse & {
+  _isNew?: boolean;
+  _isDeleting?: boolean;
+};
+
 interface MessageWindowProps {
   chatId: string;
-  messages: MessageWithSenderResponse[];
-  setMessages: React.Dispatch<React.SetStateAction<MessageWithSenderResponse[]>>;
+  messages: MessageWithFlags[];
+  setMessages: React.Dispatch<React.SetStateAction<MessageWithFlags[]>>;
   currentUserId: string;
   loading?: boolean;
   hasMore?: boolean;
@@ -15,15 +20,17 @@ interface MessageWindowProps {
   setTypingUsers?: React.Dispatch<React.SetStateAction<Set<string>>>;
   participantNames?: Map<string, string>;
   setOnlineUsers?: React.Dispatch<React.SetStateAction<Set<string>>>;
+  onDeleteMessage?: (messageId: string) => Promise<void>;
 }
 
 interface MessageItemProps {
-  message: MessageWithSenderResponse;
+  message: MessageWithFlags;
   isMine: boolean;
   senderName?: string;
+  onDeleteMessage?: (messageId: string) => Promise<void>;
 }
 
-function MessageItem({ message, isMine, senderName }: MessageItemProps) {
+function MessageItem({ message, isMine, senderName, onDeleteMessage }: MessageItemProps) {
   const [imageError, setImageError] = useState(false);
 
   const formatTime = (timestamp: string) => {
@@ -32,6 +39,16 @@ function MessageItem({ message, isMine, senderName }: MessageItemProps) {
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  const handleDelete = async () => {
+    if (!onDeleteMessage) return;
+    
+    try {
+      await onDeleteMessage(message.id);
+    } catch (error) {
+      console.error('Error deleting message:', error);
+    }
   };
 
   const renderMedia = () => {
@@ -76,13 +93,19 @@ function MessageItem({ message, isMine, senderName }: MessageItemProps) {
   };
 
   return (
-    <div className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
+    <div className={`flex ${isMine ? 'justify-end' : 'justify-start'} group`}>
       <div
-        className={`max-w-md px-4 py-3 rounded-2xl ${
+        className={`max-w-md px-4 py-3 rounded-2xl transition-all duration-300 ${
           isMine
             ? 'bg-white text-[#1A1A1A] rounded-br-md'
             : 'bg-[#F0F9FF] text-[#1A1A1A] rounded-bl-md'
-        } shadow-sm`}
+        } shadow-sm ${
+          message._isDeleting 
+            ? 'opacity-30 scale-95' 
+            : message._isNew 
+              ? 'animate-slide-in-from-bottom' 
+              : ''
+        }`}
       >
         {!isMine && senderName && (
           <p className="text-xs font-semibold text-[#2290FF] mb-1">
@@ -92,20 +115,39 @@ function MessageItem({ message, isMine, senderName }: MessageItemProps) {
         {message.media && <div className="mb-2">{renderMedia()}</div>}
         {message.content && <p className="whitespace-pre-wrap break-words">{message.content}</p>}
         <div
-          className={`text-xs mt-1 flex items-center gap-1 ${
+          className={`text-xs mt-1 flex items-center justify-between ${
             isMine ? 'justify-end' : 'justify-start'
           } text-[#6B7280]`}
         >
-          <span>{formatTime(message.timestamp)}</span>
-          {message.editedAt && <span className="text-[#6B7280]">(изм.)</span>}
-          {isMine && (
-            <div className="flex items-center gap-1 mt-1 text-xs text-[#6B7280]">
-              {message.deliveredAt ? (
-                <CheckCheck size={16} className="text-blue-500" />
+          <div className="flex items-center gap-1">
+            <span>{formatTime(message.timestamp)}</span>
+            {message.editedAt && <span className="text-[#6B7280]">(изм.)</span>}
+            {isMine && (
+              <div className="flex items-center gap-1 mt-1 text-xs text-[#6B7280]">
+                {message.status === 'sending' ? (
+                  <Loader2 size={16} className="animate-spin text-[#6B7280]" />
+                ) : message.deliveredAt ? (
+                  <CheckCheck size={16} className="text-blue-500" />
+                ) : (
+                  <Check size={16} className="text-gray-400" />
+                )}
+              </div>
+            )}
+          </div>
+          
+          {/* Кнопка удаления для моих сообщений */}
+          {isMine && message.status !== 'sending' && (
+            <button
+              onClick={handleDelete}
+              className="opacity-0 group-hover:opacity-100 ml-2 p-1 hover:bg-red-100 rounded transition-all duration-200 disabled:opacity-50"
+              disabled={message._isDeleting}
+            >
+              {message._isDeleting ? (
+                <Loader2 size={14} className="text-red-500 animate-spin" />
               ) : (
-                <Check size={16} className="text-gray-400" />
+                <span className="text-red-500 text-xs">Удалить</span>
               )}
-            </div>
+            </button>
           )}
         </div>
       </div>
@@ -124,6 +166,7 @@ export default function MessageWindow({
   typingUsers = new Set(),
   participantNames = new Map(),
   setOnlineUsers,
+  onDeleteMessage,
 }: MessageWindowProps) {
   const { socketService } = useApp();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -265,6 +308,7 @@ export default function MessageWindow({
             message={message}
             isMine={isMine}
             senderName={senderName}
+            onDeleteMessage={onDeleteMessage}
           />
         );
       })}
