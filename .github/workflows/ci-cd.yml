@@ -1,0 +1,61 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [20.x]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: '**/package-lock.json'
+
+      # Server
+      - name: Install Server Dependencies
+        run: cd Lattera/server && npm ci
+
+      - name: Lint Server
+        run: cd Lattera/server && npm run lint
+
+      - name: Test Server (Jest)
+        run: cd Lattera/server && npm test
+
+      - name: Build Server
+        run: cd Lattera/server && npm run build
+
+      # Client
+      - name: Install Client Dependencies
+        run: cd Lattera/client && npm ci
+
+      - name: Lint Client
+        run: cd Lattera/client && npm run lint
+
+      - name: Typecheck Client
+        run: cd Lattera/client && npm run typecheck
+
+      - name: Build Client
+        run: cd Lattera/client && npm run build
+
+      # CRM Client
+      - name: Install CRM Client Dependencies
+        run: cd Lattera/crm-client && npm ci
+
+      - name: Lint CRM Client
+        run: cd Lattera/crm-client && npm run lint
+        
+      - name: Build CRM Client
+        run: cd Lattera/crm-client && npm run build
