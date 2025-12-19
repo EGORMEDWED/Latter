@@ -1,7 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, Users, MessageSquare, Mail, LogOut } from 'lucide-react';
-import { adminApi } from '../services/api';
 
 interface SidebarProps {
   onLogout: () => void;

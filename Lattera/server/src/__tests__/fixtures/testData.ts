@@ -81,7 +81,7 @@ export function generateTestJWT(userId: any): string {
  * Очистить всё из БД
  */
 export async function clearDatabase() {
-  const collections = [User, Chat, Message];
+  const collections: any[] = [User, Chat, Message];
   for (const model of collections) {
     await model.deleteMany({});
   }

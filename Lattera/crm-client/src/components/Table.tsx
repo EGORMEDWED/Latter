@@ -1,18 +1,18 @@
 import React from 'react';
 
-interface Column {
+interface Column<T> {
   key: string;
   label: string;
-  render?: (row: any) => React.ReactNode;
+  render?: (row: T) => React.ReactNode;
 }
 
-interface TableProps {
-  data: any[];
-  columns: Column[];
-  onRowClick?: (row: any) => void;
+interface TableProps<T> {
+  data: T[];
+  columns: Column<T>[];
+  onRowClick?: (row: T) => void;
 }
 
-export const Table: React.FC<TableProps> = ({ data, columns, onRowClick }) => {
+export const Table = <T extends Record<string, unknown>>({ data, columns, onRowClick }: TableProps<T>) => {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm text-left">
@@ -43,7 +43,7 @@ export const Table: React.FC<TableProps> = ({ data, columns, onRowClick }) => {
               >
                 {columns.map((col) => (
                   <td key={col.key} className="px-6 py-4">
-                    {col.render ? col.render(row) : row[col.key]}
+                    {col.render ? col.render(row) : (row[col.key] as React.ReactNode)}
                   </td>
                 ))}
               </tr>
