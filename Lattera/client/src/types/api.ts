@@ -217,6 +217,8 @@ export interface MessageResponse {
   editedAt: ISODateString | null;
   deletedFor: string[];
   timestamp: ISODateString;
+  status?: 'sending' | 'sent' | 'delivered' | 'read';
+  deliveredAt?: ISODateString | null;
 }
 
 export interface SendMessageResponse {

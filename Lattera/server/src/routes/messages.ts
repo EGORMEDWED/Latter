@@ -189,20 +189,26 @@ router.post(
     await message.save();
 
     // Populate sender for response
-    await message.populate<{ senderId: PopulatedSender }>({
-      path: 'senderId',
-      select: 'firstName lastName',
-    });
+    const populatedMessage = await Message.findById(message._id)
+      .populate<{ senderId: PopulatedSender }>({
+        path: 'senderId',
+        select: 'firstName lastName',
+      })
+      .lean();
+
+    if (!populatedMessage || !populatedMessage.senderId) {
+      throw new Error('Failed to populate message sender');
+    }
 
     // Emit socket event for new message
     const socketHandler = getSocketHandler();
     if (socketHandler) {
       socketHandler.broadcastNewMessage({
-        messageId: message._id.toString(),
+        messageId: populatedMessage._id.toString(),
         chatId: chatId,
         senderId: currentUserId,
-        content: message.content,
-        timestamp: message.timestamp.toISOString(),
+        content: populatedMessage.content,
+        timestamp: populatedMessage.timestamp.toISOString(),
       });
     }
 
@@ -242,19 +248,21 @@ router.post(
     res.status(201).json({
       message: 'Message sent',
       data: {
-        id: message._id,
-        chatId: message.chatId,
-        senderId: message.senderId._id,
+        id: populatedMessage._id.toString(),
+        chatId: populatedMessage.chatId.toString(),
+        senderId: populatedMessage.senderId._id.toString(),
         sender: {
-          id: message.senderId._id,
-          firstName: message.senderId.firstName,
-          lastName: message.senderId.lastName,
+          id: populatedMessage.senderId._id.toString(),
+          firstName: populatedMessage.senderId.firstName,
+          lastName: populatedMessage.senderId.lastName,
         },
-        content: message.content,
-        media: message.media || null,
-        editedAt: message.editedAt || null,
-        deletedFor: message.deletedFor,
-        timestamp: message.timestamp,
+        content: populatedMessage.content,
+        media: populatedMessage.media || null,
+        editedAt: populatedMessage.editedAt?.toISOString() || null,
+        deletedFor: populatedMessage.deletedFor.map(id => id.toString()),
+        timestamp: populatedMessage.timestamp.toISOString(),
+        status: 'sent' as const,
+        deliveredAt: populatedMessage.timestamp.toISOString(),
       },
     });
   })
@@ -337,8 +345,7 @@ router.get(
       })
       .sort({ timestamp: -1 })
       .skip(offset)
-      .limit(limit)
-      .lean();
+      .limit(limit);
 
     logger.info('Messages retrieved', {
       userId: currentUserId,
@@ -356,19 +363,21 @@ router.get(
       limit,
       offset,
       messages: messages.map(msg => ({
-        id: msg._id,
-        chatId: msg.chatId,
-        senderId: msg.senderId._id,
+        id: msg._id.toString(),
+        chatId: msg.chatId.toString(),
+        senderId: msg.senderId._id.toString(),
         sender: {
-          id: msg.senderId._id,
+          id: msg.senderId._id.toString(),
           firstName: msg.senderId.firstName,
           lastName: msg.senderId.lastName,
         },
         content: msg.content,
         media: msg.media || null,
-        editedAt: msg.editedAt || null,
-        deletedFor: msg.deletedFor,
-        timestamp: msg.timestamp,
+        editedAt: msg.editedAt?.toISOString() || null,
+        deletedFor: msg.deletedFor.map(id => id.toString()),
+        timestamp: msg.timestamp.toISOString(),
+        status: 'sent' as const,
+        deliveredAt: msg.timestamp.toISOString(),
       })),
     });
   })

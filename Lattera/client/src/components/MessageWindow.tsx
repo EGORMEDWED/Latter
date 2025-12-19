@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Loader2, CheckCheck, Play, Volume2 } from 'lucide-react';
+import { Loader2, CheckCheck, Check, Play, Volume2 } from 'lucide-react';
 import type { MessageWithSenderResponse } from '../types/api';
 
 interface MessageWindowProps {
@@ -94,7 +94,13 @@ function MessageItem({ message, isMine, senderName }: MessageItemProps) {
           <span>{formatTime(message.timestamp)}</span>
           {message.editedAt && <span className="text-[#6B7280]">(изм.)</span>}
           {isMine && (
-            <CheckCheck size={14} className="text-[#2290FF]" />
+            <div className="flex items-center gap-1 mt-1 text-xs text-[#6B7280]">
+              {message.deliveredAt ? (
+                <CheckCheck size={16} className="text-blue-500" />
+              ) : (
+                <Check size={16} className="text-gray-400" />
+              )}
+            </div>
           )}
         </div>
       </div>

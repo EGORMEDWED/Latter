@@ -127,6 +127,8 @@ export default function MainChat({ onNavigate }: { onNavigate: NavigateFn }) {
         editedAt: null,
         deletedFor: [],
         timestamp: new Date().toISOString(),
+        status: 'sending',
+        deliveredAt: null,
       };
 
       setMessages((prev) => [...prev, tempMessage]);
@@ -169,6 +171,8 @@ export default function MainChat({ onNavigate }: { onNavigate: NavigateFn }) {
                     firstName: user.firstName,
                     lastName: user.lastName,
                   },
+                  status: 'sent',
+                  deliveredAt: new Date().toISOString(),
                 }
               : m
           )

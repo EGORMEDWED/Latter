@@ -23,6 +23,10 @@ import { getRedisConfig } from '../database/config/redis/redisConfig';
 
 const router = Router();
 
+interface RefreshRequestBody {
+  refreshToken: string;
+}
+
 const generateSixDigitCode = (): string => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };

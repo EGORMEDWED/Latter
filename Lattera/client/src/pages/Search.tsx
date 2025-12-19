@@ -207,6 +207,104 @@ export default function Search({ onNavigate }: { onNavigate: NavigateFn }) {
       </div>
 
       {/* Main content */}
+      <div className="flex">
+        {/* Desktop filters sidebar */}
+        <div className="hidden lg:block w-80 bg-white border-r border-[#E5E7EB]">
+          <div className="p-6">
+            <SearchFilters
+              filters={filters}
+              onFiltersChange={handleFiltersChange}
+              companyOptions={companyOptions}
+              onCompanyOptionsChange={setCompanyOptions}
+              hasActiveFilters={hasActiveFilters}
+              onClearAll={handleClearAllFilters}
+            />
+          </div>
+        </div>
+
+        {/* Mobile filters overlay */}
+        {showMobileFilters && (
+          <div className="lg:hidden fixed inset-0 z-30 bg-black bg-opacity-50">
+            <div className="absolute right-0 top-0 h-full w-80 bg-white shadow-xl">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-semibold">Фильтры</h3>
+                  <button
+                    onClick={() => setShowMobileFilters(false)}
+                    className="text-[#6B7280] hover:text-[#1A1A1A]"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <SearchFilters
+                  filters={filters}
+                  onFiltersChange={handleFiltersChange}
+                  companyOptions={companyOptions}
+                  onCompanyOptionsChange={setCompanyOptions}
+                  hasActiveFilters={hasActiveFilters}
+                  onClearAll={handleClearAllFilters}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Search results */}
+        <div className="flex-1 p-6">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-[#1A1A1A] mb-2">
+              Поиск специалистов
+            </h2>
+            <p className="text-[#6B7280]">
+              {totalCount > 0
+                ? `Найдено ${totalCount} специалистов`
+                : 'Специалисты не найдены'
+              }
+            </p>
+          </div>
+
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2290FF]" />
+            </div>
+          ) : users.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {users.map((user) => (
+                <UserCard
+                  key={user.id}
+                  user={user}
+                  onCreateChat={() => handleChatCreated}
+                />
+              ))}
+            </div>
+          ) : !isFirstPage ? (
+            <div className="text-center py-12">
+              <p className="text-[#6B7280] mb-4">Больше пользователей не найдено</p>
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <SearchIcon size={48} className="text-[#E5E7EB] mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-[#1A1A1A] mb-2">
+                Начните поиск
+              </h3>
+              <p className="text-[#6B7280]">
+                Используйте фильтры для поиска специалистов
+              </p>
+            </div>
+          )}
+
+          {hasMorePages && users.length > 0 && (
+            <div className="flex justify-center mt-8">
+              <Button
+                onClick={handleLoadMore}
+                variant="secondary"
+                disabled={loading}
+              >
+                Загрузить ещё
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

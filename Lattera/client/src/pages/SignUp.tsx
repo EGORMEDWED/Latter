@@ -56,12 +56,6 @@ export default function SignUp({ onNavigate }: SignUpProps) {
     if (passwordError) {
       newErrors.password = passwordError;
     }
-    if (!formData.firstName.trim()) {
-      newErrors.firstName = 'Введите имя';
-    }
-    if (!formData.lastName.trim()) {
-      newErrors.lastName = 'Введите фамилию';
-    }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -135,3 +129,45 @@ export default function SignUp({ onNavigate }: SignUpProps) {
                 setErrors({ ...errors, email: '' });
               }}
               error={errors.email}
+            />
+
+            <Input
+              label="Пароль"
+              type="password"
+              placeholder="••••••••"
+              icon={<Lock size={20} />}
+              value={formData.password}
+              onChange={(e) => {
+                setFormData({ ...formData, password: e.target.value });
+                setErrors({ ...errors, password: '' });
+              }}
+              error={errors.password}
+            />
+
+            <Button
+              type="submit"
+              className="w-full"
+              loading={loading}
+              disabled={loading}
+            >
+              Создать аккаунт
+            </Button>
+          </form>
+
+          <div className="mt-6 text-center">
+            <p className="text-[#6B7280] text-sm">
+              Уже есть аккаунт?{' '}
+              <button
+                type="button"
+                onClick={() => onNavigate('/auth/login')}
+                className="text-[#2290FF] hover:underline font-medium"
+              >
+                Войти
+              </button>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
