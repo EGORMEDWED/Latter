@@ -28,7 +28,6 @@ const upload = multer({
 });
 
 /**
-<<<<<<< HEAD
  * @swagger
  * /api/media/upload:
  *   post:
@@ -100,104 +99,6 @@ const upload = multer({
  *         $ref: '#/components/responses/InternalServerError'
  */
 /**
-=======
->>>>>>> 96201ff60245a080daa5cad290a96bfc21f231c2
- * @route POST /api/media/upload
- * @desc Загрузка медиафайла
- * @access Private
- */
-router.post(
-  '/upload',
-  upload.single('file'),
-  asyncHandler(async (req: Request, res: Response) => {
-    if (!req.file) {
-      throw new HttpError(400, 'Файл не был загружен', 'FILE_MISSING');
-    }
-
-    const userId = req.body.userId;
-    if (!userId || !Types.ObjectId.isValid(userId)) {
-      throw new HttpError(
-        400,
-        'Некорректный ID пользователя',
-        'INVALID_USER_ID'
-      );
-    }
-
-    const result = await s3Service.uploadFile(
-      req.file.buffer,
-      req.file.mimetype,
-      userId,
-      req.file.originalname
-    );
-
-    res.json({
-      success: true,
-      data: {
-        url: result.url,
-        key: result.key,
-        type: result.type,
-        size: result.size,
-        mimeType: result.mimeType,
-        uploadedAt: result.uploadedAt,
-      },
-    });
-  })
-);
-
-/**
-<<<<<<< HEAD
- * @swagger
- * /api/media/{url}:
- *   delete:
- *     summary: Удалить файл
- *     description: Удаляет файл из S3 и из базы данных. Можно удалять только свои файлы.
- *     tags: [Media]
- *     parameters:
- *       - in: path
- *         name: url
- *         required: true
- *         schema:
- *           type: string
- *         description: URL файла ( закодированный )
- *         example: "uploads%2Fuuid-filename.jpg"
- *     requestBody:
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               userId:
- *                 type: string
- *                 description: ID пользователя
- *                 example: "507f1f77bcf86cd799439011"
- *           example:
- *             userId: "507f1f77bcf86cd799439011"
- *     responses:
- *       200:
- *         description: Файл успешно удален
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: "Файл успешно удален"
- *       400:
- *         $ref: '#/components/responses/BadRequest'
- *       403:
- *         $ref: '#/components/responses/Forbidden'
- *       404:
- *         $ref: '#/components/responses/NotFound'
- *       500:
- *         $ref: '#/components/responses/InternalServerError'
- */
-/**
-=======
->>>>>>> 96201ff60245a080daa5cad290a96bfc21f231c2
  * @route DELETE /api/media/:url
  * @desc Удаление медиафайла
  * @access Private
@@ -237,7 +138,6 @@ router.delete(
  * @desc Получение временного URL для скачивания файла
  * @access Private
  */
-<<<<<<< HEAD
 /**
  * @swagger
  * /api/media/presigned/{key}:
@@ -290,96 +190,6 @@ router.delete(
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
-=======
->>>>>>> 96201ff60245a080daa5cad290a96bfc21f231c2
-router.get(
-  '/presigned/:key(*)',
-  asyncHandler(async (req: Request, res: Response) => {
-    const key = req.params.key;
-    const expiresIn = parseInt(req.query.expiresIn as string) || 3600;
-
-    const exists = await s3Service.fileExists(key);
-    if (!exists) {
-      throw new HttpError(404, 'Файл не найден', 'FILE_NOT_FOUND');
-    }
-
-    const presignedUrl = await s3Service.generatePresignedUrl(key, expiresIn);
-
-    res.json({
-      success: true,
-      data: {
-        url: presignedUrl,
-        expiresIn,
-      },
-    });
-  })
-);
-
-/**
- * @route GET /api/media/user/:userId/stats
- * @desc Получение статистики файлов пользователя
- * @access Private
- */
-<<<<<<< HEAD
-/**
- * @swagger
- * /api/media/user/{userId}/stats:
- *   get:
- *     summary: Получить статистику файлов пользователя
- *     description: Возвращает общую статистику файлов пользователя (количество, общий размер по типам).
- *     tags: [Media]
- *     parameters:
- *       - in: path
- *         name: userId
- *         required: true
- *         schema:
- *           type: string
- *         description: ID пользователя
- *         example: "507f1f77bcf86cd799439011"
- *     responses:
- *       200:
- *         description: Статистика файлов
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 data:
- *                   type: object
- *                   properties:
- *                     totalFiles:
- *                       type: integer
- *                       description: Общее количество файлов
- *                       example: 25
- *                     totalSize:
- *                       type: integer
- *                       description: Общий размер файлов в байтах
- *                       example: 52428800
- *                     byType:
- *                       type: object
- *                       properties:
- *                         images:
- *                           type: integer
- *                           example: 15
- *                         videos:
- *                           type: integer
- *                           example: 5
- *                         audio:
- *                           type: integer
- *                           example: 3
- *                         documents:
- *                           type: integer
- *                           example: 2
- *       400:
- *         $ref: '#/components/responses/BadRequest'
- *       500:
- *         $ref: '#/components/responses/InternalServerError'
- */
-=======
->>>>>>> 96201ff60245a080daa5cad290a96bfc21f231c2
 router.get(
   '/user/:userId/stats',
   asyncHandler(async (req: Request, res: Response) => {
@@ -407,7 +217,6 @@ router.get(
  * @desc Получение списка файлов пользователя с пагинацией
  * @access Private
  */
-<<<<<<< HEAD
 /**
  * @swagger
  * /api/media/user/{userId}/files:
@@ -482,8 +291,6 @@ router.get(
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
-=======
->>>>>>> 96201ff60245a080daa5cad290a96bfc21f231c2
 router.get(
   '/user/:userId/files',
   asyncHandler(async (req: Request, res: Response) => {

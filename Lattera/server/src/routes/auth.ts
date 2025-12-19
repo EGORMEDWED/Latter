@@ -104,7 +104,6 @@ const deleteRegistrationData = async (email: string): Promise<boolean> => {
   }
 };
 
-<<<<<<< HEAD
 /**
  * @swagger
  * /api/auth/register:
@@ -142,88 +141,6 @@ const deleteRegistrationData = async (email: string): Promise<boolean> => {
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
-=======
->>>>>>> 96201ff60245a080daa5cad290a96bfc21f231c2
-router.post(
-  '/register',
-  asyncHandler(async (req: Request, res: Response) => {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      throw BadRequestError('Email and password are required');
-    }
-
-    if (!AuthService.validateEmail(email)) {
-      throw BadRequestError('Invalid email format');
-    }
-
-    const passwordValidation = AuthService.validatePassword(password);
-    if (!passwordValidation.valid) {
-      throw BadRequestError(passwordValidation.errors.join(', '));
-    }
-
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
-    if (existingUser) {
-      logger.warn(`Registration attempt for existing email: ${email}`);
-      throw ConflictError('Email already registered');
-    }
-
-    const code = generateSixDigitCode();
-
-    const stored = await setRegistrationData(email, password, code);
-    if (!stored) {
-      throw new Error('Failed to store verification code');
-    }
-
-    logger.info(`Registration initiated for email: ${email}`);
-
-    res.status(200).json({
-      message: 'Verification code sent to email',
-      email: email.toLowerCase(),
-    });
-  })
-);
-
-<<<<<<< HEAD
-/**
- * @swagger
- * /api/auth/verify-email:
- *   post:
- *     summary: Подтверждение email адреса
- *     description: Подтверждает email с помощью кода и создает пользователя. После успешного подтверждения возвращает токены доступа.
- *     tags: [Authentication]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/VerifyEmailRequest'
- *           example:
- *             email: "user@example.com"
- *             code: "123456"
- *     responses:
- *       201:
- *         description: Пользователь успешно создан и авторизован
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/AuthResponse'
- *             example:
- *               message: "User created successfully"
- *               accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
- *               refreshToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
- *               user:
- *                 id: "507f1f77bcf86cd799439011"
- *                 email: "user@example.com"
- *       400:
- *         $ref: '#/components/responses/BadRequest'
- *       401:
- *         $ref: '#/components/responses/Unauthorized'
- *       500:
- *         $ref: '#/components/responses/InternalServerError'
- */
-=======
->>>>>>> 96201ff60245a080daa5cad290a96bfc21f231c2
 router.post(
   '/verify-email',
   asyncHandler(async (req: Request, res: Response) => {
@@ -298,7 +215,6 @@ interface LoginRequestBody {
   password?: string;
 }
 
-<<<<<<< HEAD
 /**
  * @swagger
  * /api/auth/login:
@@ -358,131 +274,6 @@ interface LoginRequestBody {
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
-=======
->>>>>>> 96201ff60245a080daa5cad290a96bfc21f231c2
-router.post(
-  '/login',
-  asyncHandler(async (req: Request, res: Response) => {
-    const { email, password } = req.body as LoginRequestBody;
-
-    if (typeof email !== 'string' || typeof password !== 'string') {
-      throw BadRequestError('Email and password are required');
-    }
-
-    const normalizedEmail = email.toLowerCase().trim();
-
-    logger.info('Login attempt', { email: normalizedEmail });
-
-    if (!AuthService.validateEmail(normalizedEmail)) {
-      logger.warn('Login failed (invalid email format)', {
-        email: normalizedEmail,
-      });
-      throw BadRequestError('Invalid email format');
-    }
-
-    const user = await User.findOne({ email: normalizedEmail });
-    if (!user) {
-      logger.warn('Login failed (invalid credentials)', {
-        email: normalizedEmail,
-      });
-      throw UnauthorizedError('Invalid email or password');
-    }
-
-    const passwordMatches = await AuthService.comparePassword(
-      password,
-      user.passwordHash
-    );
-
-    if (!passwordMatches) {
-      logger.warn('Login failed (invalid credentials)', {
-        email: normalizedEmail,
-      });
-      throw UnauthorizedError('Invalid email or password');
-    }
-
-    const userId = (
-      user._id as unknown as { toString: () => string }
-    ).toString();
-
-    const accessToken = AuthService.generateAccessToken(userId);
-    const refreshToken = AuthService.generateRefreshToken(userId);
-
-    const refreshStored = await setRefreshToken(userId, refreshToken);
-    if (!refreshStored) {
-      logger.warn(`Failed to store refresh token for user: ${userId}`);
-    }
-
-    const statusUpdated = await setUserStatus(userId, 'online');
-    if (!statusUpdated) {
-      logger.warn(`Failed to update online status for user: ${userId}`);
-    }
-
-    logger.info('Login successful', { email: normalizedEmail, userId });
-
-    res.status(200).json({
-      message: 'Login successful',
-      accessToken,
-      refreshToken,
-      user: {
-        id: userId,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        profile: {
-          position: user.profile?.position || '',
-          company: user.profile?.company || '',
-          category: user.profile?.category || 'Other',
-          skills: user.profile?.skills || [],
-        },
-      },
-    });
-  })
-);
-
-interface RefreshRequestBody {
-  refreshToken?: string;
-}
-
-<<<<<<< HEAD
-/**
- * @swagger
- * /api/auth/refresh:
- *   post:
- *     summary: Обновление токена доступа
- *     description: Обновляет access token с помощью refresh token. Refresh token должен быть валидным и находиться в хранилище.
- *     tags: [Authentication]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/RefreshTokenRequest'
- *           example:
- *             refreshToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
- *     responses:
- *       200:
- *         description: Токен успешно обновлен
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Token refreshed"
- *                 accessToken:
- *                   type: string
- *                   description: "Новый JWT токен доступа (действует 24 часа)"
- *                   example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
- *       400:
- *         $ref: '#/components/responses/BadRequest'
- *       401:
- *         $ref: '#/components/responses/Unauthorized'
- *       500:
- *         $ref: '#/components/responses/InternalServerError'
- */
-=======
->>>>>>> 96201ff60245a080daa5cad290a96bfc21f231c2
 router.post(
   '/refresh',
   asyncHandler(async (req: Request, res: Response) => {

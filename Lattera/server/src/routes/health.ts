@@ -8,7 +8,6 @@ import {
 const router = Router();
 
 /**
-<<<<<<< HEAD
  * @swagger
  * /api/health:
  *   get:
@@ -100,116 +99,6 @@ const router = Router();
  *                       example: false
  */
 /**
-=======
->>>>>>> 96201ff60245a080daa5cad290a96bfc21f231c2
- * @route GET /api/health
- * @desc Health check endpoint
- * @access Public
- */
-router.get('/', async (_req: Request, res: Response) => {
-  const dbState = getConnectionState();
-  const redisState = getRedisConnectionState();
-  const redisHealthy = await isRedisHealthy().catch(() => false);
-
-  res.json({
-    status: 'OK',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    message: 'Lettera Server is healthy!',
-    environment: process.env.NODE_ENV || 'development',
-    database: {
-      connected: dbState.readyState === 1,
-      host: dbState.host,
-      port: dbState.port,
-      name: dbState.name,
-      readyState: dbState.readyState,
-    },
-    redis: {
-      connected: redisHealthy,
-      status: redisState.status,
-      host: redisState.host,
-      port: redisState.port,
-    },
-  });
-});
-
-/**
-<<<<<<< HEAD
- * @swagger
- * /api/health/db:
- *   get:
- *     summary: Проверка состояния базы данных
- *     description: Детальная проверка состояния подключения к MongoDB.
- *     tags: [Health]
- *     responses:
- *       200:
- *         description: База данных доступна
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 database:
- *                   type: object
- *                   properties:
- *                     connected:
- *                       type: boolean
- *                       example: true
- *                     readyState:
- *                       type: integer
- *                       example: 1
- *                     readyStateText:
- *                       type: string
- *                       example: "connected"
- *                     host:
- *                       type: string
- *                       example: "localhost"
- *                     port:
- *                       type: integer
- *                       example: 27017
- *                     name:
- *                       type: string
- *                       example: "lettera"
- *                     timestamp:
- *                       type: string
- *                       format: date-time
- *                       example: "2024-01-15T10:30:00.000Z"
- *       503:
- *         description: База данных недоступна
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 database:
- *                   type: object
- *                   properties:
- *                     connected:
- *                       type: boolean
- *                       example: false
- *                     readyState:
- *                       type: integer
- *                       example: 0
- *                     readyStateText:
- *                       type: string
- *                       example: "disconnected"
- *                     host:
- *                       type: string
- *                       example: "localhost"
- *                     port:
- *                       type: integer
- *                       example: 27017
- *                     name:
- *                       type: string
- *                       example: "lettera"
- *                     timestamp:
- *                       type: string
- *                       format: date-time
- *                       example: "2024-01-15T10:30:00.000Z"
- */
-/**
-=======
->>>>>>> 96201ff60245a080daa5cad290a96bfc21f231c2
  * @route GET /api/health/db
  * @desc Database health check endpoint
  * @access Public
@@ -240,7 +129,6 @@ router.get('/db', (_req: Request, res: Response) => {
 });
 
 /**
-<<<<<<< HEAD
  * @swagger
  * /api/health/redis:
  *   get:
@@ -308,8 +196,6 @@ router.get('/db', (_req: Request, res: Response) => {
  *                       example: true
  */
 /**
-=======
->>>>>>> 96201ff60245a080daa5cad290a96bfc21f231c2
  * @route GET /api/health/redis
  * @desc Redis health check endpoint
  * @access Public

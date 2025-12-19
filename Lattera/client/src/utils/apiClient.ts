@@ -60,10 +60,7 @@ export const tokenStorage = {
     if (!hasWindow()) return;
     window.localStorage.removeItem(ACCESS_TOKEN_KEY);
     window.localStorage.removeItem(REFRESH_TOKEN_KEY);
-<<<<<<< HEAD
     window.dispatchEvent(new CustomEvent("auth:tokens-cleared"));
-=======
->>>>>>> 96201ff60245a080daa5cad290a96bfc21f231c2
   },
 };
 

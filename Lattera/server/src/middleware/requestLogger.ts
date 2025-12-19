@@ -2,7 +2,6 @@ import { Request, Response, NextFunction } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import logger from '../utils/logger';
 
-<<<<<<< HEAD
 // Extend Request interface to include custom properties
 declare global {
   namespace Express {
@@ -13,8 +12,6 @@ declare global {
   }
 }
 
-=======
->>>>>>> 96201ff60245a080daa5cad290a96bfc21f231c2
 const sensitiveFields = [
   'password',
   'token',

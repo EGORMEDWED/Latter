@@ -40,7 +40,6 @@ const getUnreadCount = (
   return (unreadCount as Record<string, number>)[userId] || 0;
 };
 
-<<<<<<< HEAD
 /**
  * @swagger
  * /api/chats:
@@ -116,239 +115,6 @@ const getUnreadCount = (
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
-=======
->>>>>>> 96201ff60245a080daa5cad290a96bfc21f231c2
-// POST /api/chats - Create a new chat
-router.post(
-  '/',
-  authMiddleware,
-  asyncHandler(async (req: Request, res: Response) => {
-    const { participantIds } = req.body as CreateChatRequest;
-    const currentUserId = req.user!.userId;
-
-    // Validate participantIds
-    if (!participantIds || !Array.isArray(participantIds)) {
-      throw BadRequestError('participantIds must be an array');
-    }
-
-    if (participantIds.length !== 1) {
-      throw BadRequestError('participantIds must contain exactly 1 user ID');
-    }
-
-    const otherUserId = participantIds[0];
-
-    // Validate ObjectId format
-    if (!Types.ObjectId.isValid(otherUserId)) {
-      throw BadRequestError('Invalid user ID format');
-    }
-
-    // Prevent self-chat
-    if (otherUserId === currentUserId) {
-      throw BadRequestError('Cannot create a chat with yourself');
-    }
-
-    // Check if other user exists
-    const otherUserExists = await User.findById(otherUserId);
-    if (!otherUserExists) {
-      throw NotFoundError('User not found');
-    }
-
-    const currentUserObjectId = new Types.ObjectId(currentUserId);
-    const otherUserObjectId = new Types.ObjectId(otherUserId);
-
-    // Check if chat already exists between these users
-    const existingChat = await Chat.findOne({
-      participants: { $all: [currentUserObjectId, otherUserObjectId] },
-      type: 'private',
-    }).populate<{ participants: PopulatedParticipant[] }>({
-      path: 'participants',
-      select:
-        'firstName lastName avatarUrl profile.position profile.company profile.category',
-    });
-
-    if (existingChat) {
-      logger.info('Chat already exists', {
-        userId: currentUserId,
-        chatId: existingChat._id,
-      });
-
-      // Convert unreadCount Map to plain object
-      const unreadCountObj: { [key: string]: number } = {};
-      existingChat.participants.forEach(participant => {
-        const participantIdStr = participant._id.toString();
-        unreadCountObj[participantIdStr] = getUnreadCount(
-          existingChat.unreadCount as
-            | Map<string, number>
-            | Record<string, number>,
-          participantIdStr
-        );
-      });
-
-      return res.status(200).json({
-        message: 'Chat already exists',
-        chat: {
-          id: existingChat._id,
-          participants: existingChat.participants.map(p => ({
-            id: p._id,
-            firstName: p.firstName,
-            lastName: p.lastName,
-            avatarUrl: p.avatarUrl,
-            profile: {
-              position: p.profile?.position || '',
-              company: p.profile?.company || '',
-              category: p.profile?.category || 'Other',
-            },
-          })),
-          type: existingChat.type,
-          lastMessage: existingChat.lastMessage
-            ? {
-                content: existingChat.lastMessage.content,
-                senderId: existingChat.lastMessage.senderId,
-                timestamp: existingChat.lastMessage.timestamp,
-              }
-            : null,
-          unreadCount: unreadCountObj,
-          createdAt: existingChat.createdAt,
-          updatedAt: existingChat.updatedAt,
-        },
-      });
-    }
-
-    // Create new chat
-    const newChat = await Chat.create({
-      participants: [currentUserObjectId, otherUserObjectId],
-      type: 'private',
-      lastMessage: undefined,
-      unreadCount: new Map([
-        [currentUserId, 0],
-        [otherUserId, 0],
-      ]),
-    });
-
-    // Populate participant info
-    const populatedChat = await Chat.findById(newChat._id).populate<{
-      participants: PopulatedParticipant[];
-    }>({
-      path: 'participants',
-      select:
-        'firstName lastName avatarUrl profile.position profile.company profile.category',
-    });
-
-    if (!populatedChat) {
-      throw NotFoundError('Chat not found after creation');
-    }
-
-    logger.info('Chat created', {
-      userId: currentUserId,
-      chatId: populatedChat._id,
-    });
-
-    // Convert unreadCount Map to plain object
-    const unreadCountObj: { [key: string]: number } = {};
-    populatedChat.participants.forEach(participant => {
-      const participantIdStr = participant._id.toString();
-      unreadCountObj[participantIdStr] = getUnreadCount(
-        populatedChat.unreadCount as
-          | Map<string, number>
-          | Record<string, number>,
-        participantIdStr
-      );
-    });
-
-    res.status(201).json({
-      message: 'Chat created',
-      chat: {
-        id: populatedChat._id,
-        participants: populatedChat.participants.map(p => ({
-          id: p._id,
-          firstName: p.firstName,
-          lastName: p.lastName,
-          avatarUrl: p.avatarUrl,
-          profile: {
-            position: p.profile?.position || '',
-            company: p.profile?.company || '',
-            category: p.profile?.category || 'Other',
-          },
-        })),
-        type: populatedChat.type,
-        lastMessage: null,
-        unreadCount: unreadCountObj,
-        createdAt: populatedChat.createdAt,
-        updatedAt: populatedChat.updatedAt,
-      },
-    });
-  })
-);
-
-// GET /api/chats - Get all user's chats
-<<<<<<< HEAD
-/**
- * @swagger
- * /api/chats:
- *   get:
- *     summary: Получить список чатов пользователя
- *     description: Возвращает список всех чатов текущего пользователя с пагинацией. Сортируется по времени последнего сообщения.
- *     tags: [Chats]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           minimum: 1
- *           maximum: 100
- *           default: 20
- *         description: Максимальное количество результатов (1-100)
- *         example: 20
- *       - in: query
- *         name: offset
- *         schema:
- *           type: integer
- *           minimum: 0
- *           default: 0
- *         description: Смещение для пагинации
- *         example: 0
- *     responses:
- *       200:
- *         description: Список чатов
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ChatListResponse'
- *             example:
- *               message: "Chats retrieved"
- *               total: 15
- *               count: 10
- *               limit: 10
- *               offset: 0
- *               chats:
- *                 - id: "507f1f77bcf86cd799439013"
- *                   type: "private"
- *                   participants:
- *                     - id: "507f1f77bcf86cd799439012"
- *                       firstName: "Анна"
- *                       lastName: "Смирнова"
- *                       profile:
- *                         position: "UI/UX Designer"
- *                         company: "DesignStudio"
- *                     unreadCount: 3
- *                   lastMessage:
- *                     content: "Привет! Как дела?"
- *                     senderId: "507f1f77bcf86cd799439012"
- *                     timestamp: "2024-01-15T10:30:00.000Z"
- *                   unreadCount:
- *                     "507f1f77bcf86cd799439011": 3
- *                     "507f1f77bcf86cd799439012": 0
- *       400:
- *         $ref: '#/components/responses/BadRequest'
- *       401:
- *         $ref: '#/components/responses/Unauthorized'
- *       500:
- *         $ref: '#/components/responses/InternalServerError'
- */
-=======
->>>>>>> 96201ff60245a080daa5cad290a96bfc21f231c2
 router.get(
   '/',
   authMiddleware,
@@ -469,7 +235,6 @@ router.get(
   })
 );
 
-<<<<<<< HEAD
 /**
  * @swagger
  * /api/chats/{chatId}:
@@ -542,8 +307,6 @@ router.get(
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
-=======
->>>>>>> 96201ff60245a080daa5cad290a96bfc21f231c2
 // GET /api/chats/:chatId - Get specific chat details
 router.get(
   '/:chatId',

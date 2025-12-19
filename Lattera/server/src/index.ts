@@ -2,10 +2,7 @@ import express from 'express';
 import http from 'http';
 import cors from 'cors';
 import dotenv from 'dotenv';
-<<<<<<< HEAD
 import swaggerUI from 'swagger-ui-express';
-=======
->>>>>>> 96201ff60245a080daa5cad290a96bfc21f231c2
 import { Server as SocketIOServer } from 'socket.io';
 import healthRouter from './routes/health';
 import mediaRouter from './routes/media';
@@ -13,11 +10,8 @@ import authRouter from './routes/auth';
 import usersRouter from './routes/users';
 import chatsRouter from './routes/chats';
 import messagesRouter from './routes/messages';
-<<<<<<< HEAD
 import feedbackRouter from './routes/feedback';
 import { swaggerSpec } from './swagger/swaggerConfig';
-=======
->>>>>>> 96201ff60245a080daa5cad290a96bfc21f231c2
 import {
   connectDB,
   createIndexes,
@@ -49,7 +43,6 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-<<<<<<< HEAD
 // Swagger UI
 app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(swaggerSpec, {
   customCss: '.swagger-ui .topbar { display: none }',
@@ -63,8 +56,6 @@ app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(swaggerSpec, {
   },
 }));
 
-=======
->>>>>>> 96201ff60245a080daa5cad290a96bfc21f231c2
 // Routes
 app.use('/api/health', healthRouter);
 app.use('/api/media', mediaRouter);
@@ -72,10 +63,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/chats', chatsRouter);
 app.use('/api/messages', messagesRouter);
-<<<<<<< HEAD
 app.use('/api/feedback-requests', feedbackRouter);
-=======
->>>>>>> 96201ff60245a080daa5cad290a96bfc21f231c2
 
 // Root route
 app.get('/', (_req, res) => {
