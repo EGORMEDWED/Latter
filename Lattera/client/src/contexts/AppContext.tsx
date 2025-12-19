@@ -13,10 +13,13 @@ import type { UserResponse } from '../types/api';
 
 import { api } from '../services/api';
 import { tokenStorage } from '../utils/apiClient';
+import { socketService } from '../services/socketService';
 
 interface AppContextType {
   user: UserResponse | null;
   setUser: (user: UserResponse | null) => void;
+
+  socketService: typeof socketService;
 
   isAuthenticated: boolean;
   authLoading: boolean;
@@ -97,10 +100,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('auth:tokens-cleared', handler);
   }, []);
 
+  useEffect(() => {
+    if (user) {
+      socketService.initialize();
+    } else {
+      socketService.disconnect();
+    }
+  }, [user]);
+
   const value = useMemo<AppContextType>(
     () => ({
       user,
       setUser,
+      socketService,
       isAuthenticated: Boolean(user),
       authLoading,
       refreshSession,

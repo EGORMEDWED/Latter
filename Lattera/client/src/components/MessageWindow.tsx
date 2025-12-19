@@ -1,15 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 import { Loader2, CheckCheck, Check, Play, Volume2 } from 'lucide-react';
-import type { MessageWithSenderResponse } from '../types/api';
+import type { MessageWithSenderResponse, MessageResponse } from '../types/api';
+import { useApp } from '../contexts/AppContext';
 
 interface MessageWindowProps {
+  chatId: string;
   messages: MessageWithSenderResponse[];
+  setMessages: React.Dispatch<React.SetStateAction<MessageWithSenderResponse[]>>;
   currentUserId: string;
   loading?: boolean;
   hasMore?: boolean;
   onLoadMore?: () => void;
   typingUsers?: Set<string>;
+  setTypingUsers?: React.Dispatch<React.SetStateAction<Set<string>>>;
   participantNames?: Map<string, string>;
+  setOnlineUsers?: React.Dispatch<React.SetStateAction<Set<string>>>;
 }
 
 interface MessageItemProps {
@@ -109,17 +114,82 @@ function MessageItem({ message, isMine, senderName }: MessageItemProps) {
 }
 
 export default function MessageWindow({
+  chatId,
   messages,
+  setMessages,
   currentUserId,
   loading,
   hasMore,
   onLoadMore,
   typingUsers = new Set(),
   participantNames = new Map(),
+  setOnlineUsers,
 }: MessageWindowProps) {
+  const { socketService } = useApp();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+
+  useEffect(() => {
+    if (!chatId) return;
+
+    const unsubNew = socketService.onNewMessage((message: MessageResponse) => {
+      if (message.chatId !== chatId) return;
+
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === message.id)) return prev;
+
+        const messageWithSender: MessageWithSenderResponse = {
+          ...message,
+          sender: message.sender || {
+            id: message.senderId,
+            firstName: '',
+            lastName: '',
+          },
+        };
+
+        return [...prev, messageWithSender];
+      });
+    });
+
+    const unsubDelete = socketService.onMessageDeleted((data) => {
+      if (data.chatId === chatId) {
+        setMessages((prev) => prev.filter((m) => m.id !== data.messageId));
+      }
+    });
+
+    const unsubEdit = socketService.onMessageEdited((data) => {
+      if (data.chatId === chatId) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === data.messageId
+              ? { ...m, content: data.content, editedAt: data.editedAt }
+              : m
+          )
+        );
+      }
+    });
+
+    const unsubUserStatus = socketService.onUserStatus((status) => {
+      if (!setOnlineUsers) return;
+      setOnlineUsers((prev) => {
+        const next = new Set(prev);
+        if (status.status === 'online') {
+          next.add(status.userId);
+        } else {
+          next.delete(status.userId);
+        }
+        return next;
+      });
+    });
+
+    return () => {
+      unsubNew();
+      unsubDelete();
+      unsubEdit();
+      unsubUserStatus();
+    };
+  }, [chatId, setMessages, setOnlineUsers, socketService]);
 
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
     messagesEndRef.current?.scrollIntoView({ behavior });

@@ -9,7 +9,6 @@ import type {
 } from '../types/api';
 
 import { api } from '../services/api';
-import { socketService } from '../services/socketService';
 import { useApp } from '../contexts/AppContext';
 import Logo from '../components/Logo';
 import ChatList from '../components/ChatList';
@@ -17,7 +16,7 @@ import MessageWindow from '../components/MessageWindow';
 import MessageComposer from '../components/MessageComposer';
 
 export default function MainChat({ onNavigate }: { onNavigate: NavigateFn }) {
-  const { user, addToast } = useApp();
+  const { user, addToast, socketService } = useApp();
   const [chats, setChats] = useState<ChatResponseData[]>([]);
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<MessageWithSenderResponse[]>([]);
@@ -205,71 +204,17 @@ export default function MainChat({ onNavigate }: { onNavigate: NavigateFn }) {
     if (selectedChatId) {
       socketService.emitTyping(selectedChatId);
     }
-  }, [selectedChatId]);
+  }, [selectedChatId, socketService]);
 
   const handleStopTyping = useCallback(() => {
     if (selectedChatId) {
       socketService.emitStopTyping(selectedChatId);
     }
-  }, [selectedChatId]);
+  }, [selectedChatId, socketService]);
 
   useEffect(() => {
     loadChats();
   }, [loadChats]);
-
-  // Subscribe to new messages
-  useEffect(() => {
-    if (!selectedChatId || !user) return;
-
-    const unsubscribe = socketService.onNewMessage((message) => {
-      if (message.chatId !== selectedChatId) return;
-
-      setMessages((prev) => {
-        const exists = prev.some((m) => m.id === message.id);
-        if (exists) return prev;
-
-        const messageWithSender: MessageWithSenderResponse = {
-          ...message,
-          sender: message.sender || {
-            id: message.senderId,
-            firstName: '',
-            lastName: '',
-          },
-        };
-
-        return [...prev, messageWithSender];
-      });
-
-      if (message.senderId !== user.id) {
-        setChats((prev) =>
-          prev.map((c) =>
-            c.id === selectedChatId
-              ? { ...c, unreadCount: { ...c.unreadCount, [user.id]: 0 } }
-              : c
-          )
-        );
-
-        void api.chats
-          .markAsRead(selectedChatId)
-          .catch((error) => console.error('Error marking chat as read:', error));
-      }
-    });
-
-    return () => unsubscribe();
-  }, [selectedChatId, user]);
-
-  // Subscribe to deleted messages
-  useEffect(() => {
-    if (!selectedChatId) return;
-
-    const unsubscribe = socketService.onMessageDeleted((data) => {
-      if (data.chatId === selectedChatId) {
-        setMessages((prev) => prev.filter((m) => m.id !== data.messageId));
-      }
-    });
-
-    return () => unsubscribe();
-  }, [selectedChatId]);
 
   useEffect(() => {
     if (!user) return;
@@ -285,6 +230,10 @@ export default function MainChat({ onNavigate }: { onNavigate: NavigateFn }) {
 
               const shouldIncrementUnread =
                 message.senderId !== user.id && message.chatId !== selectedChatId;
+
+              if (message.chatId === selectedChatId && message.senderId !== user.id) {
+                 void api.chats.markAsRead(selectedChatId).catch(console.error);
+              }
 
               return {
                 ...chat,
@@ -363,21 +312,10 @@ export default function MainChat({ onNavigate }: { onNavigate: NavigateFn }) {
         }
       });
 
-      const unsubscribeMessageEdited = socketService.onMessageEdited((data) => {
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === data.messageId
-              ? { ...m, content: data.content, editedAt: data.editedAt }
-              : m
-          )
-        );
-      });
-
       return () => {
         unsubscribeNewMessage();
         unsubscribeUserStatus();
         unsubscribeTyping();
-        unsubscribeMessageEdited();
         socketService.disconnect();
 
         const timeouts = typingTimeoutRef.current;
@@ -387,7 +325,7 @@ export default function MainChat({ onNavigate }: { onNavigate: NavigateFn }) {
     } catch (error) {
       console.error('Error initializing socket:', error);
     }
-  }, [user, selectedChatId]);
+  }, [user, selectedChatId, socketService]);
 
   if (!user) {
     return (
@@ -509,13 +447,16 @@ export default function MainChat({ onNavigate }: { onNavigate: NavigateFn }) {
               </div>
 
               <MessageWindow
+                chatId={selectedChat.id}
                 messages={messages}
+                setMessages={setMessages}
                 currentUserId={user.id}
                 loading={messagesLoading}
                 hasMore={hasMoreMessages}
                 onLoadMore={handleLoadMoreMessages}
                 typingUsers={typingUsers}
                 participantNames={participantNames}
+                setOnlineUsers={setOnlineUsers}
               />
 
               <MessageComposer
