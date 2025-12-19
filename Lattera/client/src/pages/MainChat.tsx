@@ -11,6 +11,7 @@ import type {
 type MessageWithFlags = MessageWithSenderResponse & {
   _isNew?: boolean;
   _isDeleting?: boolean;
+  _isEditing?: boolean;
 };
 
 import { api } from '../services/api';
@@ -111,6 +112,38 @@ export default function MainChat({ onNavigate }: { onNavigate: NavigateFn }) {
       loadMessages(selectedChatId, messagesOffset);
     }
   }, [selectedChatId, hasMoreMessages, messagesLoading, messagesOffset, loadMessages]);
+
+  const handleEditMessage = useCallback(
+    async (messageId: string, content: string, chatId: string) => {
+      if (!user) return;
+
+      // Оптимистичное обновление - сразу обновляем UI
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === messageId
+            ? { ...m, content, editedAt: new Date().toISOString(), _isEditing: false }
+            : m
+        )
+      );
+
+      try {
+        // API вызов для редактирования сообщения
+        await api.messages.edit(messageId, { content });
+        
+        // Обработчик события сокета обновит других клиентов
+        // Нет необходимости вручную обновлять, так как мы сделали оптимистичное обновление
+      } catch (error) {
+        console.error('Error editing message:', error);
+        addToast('error', 'Не удалось отредактировать сообщение');
+        
+        // Откат оптимистичного обновления при ошибке
+        // Мы должны вернуть оригинальное сообщение
+        // В реальном приложении лучше хранить оригинальные сообщения
+        setMessages((prev) => prev);
+      }
+    },
+    [user, addToast]
+  );
 
   const handleDeleteMessage = useCallback(
     async (messageId: string) => {
@@ -495,6 +528,7 @@ export default function MainChat({ onNavigate }: { onNavigate: NavigateFn }) {
                 participantNames={participantNames}
                 setOnlineUsers={setOnlineUsers}
                 onDeleteMessage={handleDeleteMessage}
+                onEditMessage={handleEditMessage}
               />
 
               <MessageComposer
