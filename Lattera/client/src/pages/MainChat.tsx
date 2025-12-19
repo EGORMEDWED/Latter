@@ -8,6 +8,11 @@ import type {
   MessageResponse,
 } from '../types/api';
 
+type MessageWithFlags = MessageWithSenderResponse & {
+  _isNew?: boolean;
+  _isDeleting?: boolean;
+};
+
 import { api } from '../services/api';
 import { useApp } from '../contexts/AppContext';
 import Logo from '../components/Logo';
@@ -19,7 +24,7 @@ export default function MainChat({ onNavigate }: { onNavigate: NavigateFn }) {
   const { user, addToast, socketService } = useApp();
   const [chats, setChats] = useState<ChatResponseData[]>([]);
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<MessageWithSenderResponse[]>([]);
+  const [messages, setMessages] = useState<MessageWithFlags[]>([]);
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   const [chatsLoading, setChatsLoading] = useState(true);
@@ -107,6 +112,31 @@ export default function MainChat({ onNavigate }: { onNavigate: NavigateFn }) {
     }
   }, [selectedChatId, hasMoreMessages, messagesLoading, messagesOffset, loadMessages]);
 
+  const handleDeleteMessage = useCallback(
+    async (messageId: string) => {
+      if (!selectedChatId || !user) return;
+      
+      // Оптимистично скрываем сообщение из UI
+      setMessages((prev) => prev.map(m => 
+        m.id === messageId ? { ...m, _isDeleting: true } : m
+      ));
+
+      try {
+        await api.messages.delete(messageId);
+        // После успешного удаления удаляем полностью из state
+        setMessages((prev) => prev.filter(m => m.id !== messageId));
+      } catch (error) {
+        console.error('Error deleting message:', error);
+        addToast('error', 'Не удалось удалить сообщение');
+        // Откатываем изменения при ошибке - убираем флаг _isDeleting
+        setMessages((prev) => prev.map(m => 
+          m.id === messageId ? { ...m, _isDeleting: false } : m
+        ));
+      }
+    },
+    [selectedChatId, user, addToast]
+  );
+
   const handleSendMessage = useCallback(
     async (content: string, mediaFile?: File) => {
       if (!selectedChatId || !user) return;
@@ -131,6 +161,13 @@ export default function MainChat({ onNavigate }: { onNavigate: NavigateFn }) {
       };
 
       setMessages((prev) => [...prev, tempMessage]);
+
+      // Убираем флаг _isNew после анимации  
+      setTimeout(() => {
+        setMessages((prev) => 
+          prev.map(m => m.id === tempId ? { ...m, _isNew: false } : m)
+        );
+      }, 500);
 
       try {
         let mediaData = undefined;
@@ -457,6 +494,7 @@ export default function MainChat({ onNavigate }: { onNavigate: NavigateFn }) {
                 typingUsers={typingUsers}
                 participantNames={participantNames}
                 setOnlineUsers={setOnlineUsers}
+                onDeleteMessage={handleDeleteMessage}
               />
 
               <MessageComposer
