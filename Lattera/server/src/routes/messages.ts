@@ -126,6 +126,108 @@ interface PopulatedSender {
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
+// POST /api/messages - Create a new message
+router.post(
+  '/',
+  authMiddleware,
+  asyncHandler(async (req: Request, res: Response) => {
+    const { chatId, content, media } = req.body;
+    const currentUserId = req.user!.userId;
+    const currentUserObjectId = new Types.ObjectId(currentUserId);
+
+    // Validate chatId
+    if (!chatId || typeof chatId !== 'string') {
+      throw BadRequestError('chatId is required and must be a string');
+    }
+
+    if (!Types.ObjectId.isValid(chatId)) {
+      throw BadRequestError('Invalid chat ID format');
+    }
+
+    // Validate content or media
+    if (!content && !media) {
+      throw BadRequestError('Either content or media must be provided');
+    }
+
+    if (content && typeof content !== 'string') {
+      throw BadRequestError('content must be a string');
+    }
+
+    if (content && content.length > 5000) {
+      throw BadRequestError('content must be less than 5000 characters');
+    }
+
+    // Verify user is participant of the chat
+    const chat = await Chat.findById(chatId);
+
+    if (!chat) {
+      throw NotFoundError('Chat not found');
+    }
+
+    const isParticipant = chat.participants.some(participant =>
+      participant.equals(currentUserObjectId)
+    );
+
+    if (!isParticipant) {
+      throw ForbiddenError('You are not a participant of this chat');
+    }
+
+    // Create and save the message
+    const message = new Message({
+      chatId: new Types.ObjectId(chatId),
+      senderId: currentUserObjectId,
+      content: content || '',
+      media: media || undefined,
+      timestamp: new Date(),
+    });
+
+    await message.save();
+
+    // Populate sender for response
+    await message.populate<{ senderId: PopulatedSender }>({
+      path: 'senderId',
+      select: 'firstName lastName',
+    });
+
+    // Emit socket event for new message
+    const socketHandler = getSocketHandler();
+    if (socketHandler) {
+      socketHandler.broadcastNewMessage({
+        messageId: message._id.toString(),
+        chatId: chatId,
+        senderId: currentUserId,
+        content: message.content,
+        timestamp: message.timestamp.toISOString(),
+      });
+    }
+
+    logger.info('Message created and emitted via socket', {
+      userId: currentUserId,
+      chatId,
+      messageId: message._id,
+    });
+
+    res.status(201).json({
+      message: 'Message sent',
+      data: {
+        id: message._id,
+        chatId: message.chatId,
+        senderId: message.senderId._id,
+        sender: {
+          id: message.senderId._id,
+          firstName: message.senderId.firstName,
+          lastName: message.senderId.lastName,
+        },
+        content: message.content,
+        media: message.media || null,
+        editedAt: message.editedAt || null,
+        deletedFor: message.deletedFor,
+        timestamp: message.timestamp,
+      },
+    });
+  })
+);
+
 // GET /api/messages?chatId=...&limit=50&offset=0 - Get messages
 router.get(
   '/',
