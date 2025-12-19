@@ -206,10 +206,37 @@ router.post(
       });
     }
 
-    logger.info('Message created and emitted via socket', {
+    // Update chat lastMessage + unreadCount for other participants
+    const otherParticipantIds = chat.participants
+      .filter(participant => !participant.equals(currentUserObjectId))
+      .map(participant => participant.toString());
+
+    const incUpdate: Record<string, number> = {};
+    otherParticipantIds.forEach(participantId => {
+      incUpdate[`unreadCount.${participantId}`] = 1;
+    });
+
+    const chatUpdate: any = {
+      $set: {
+        lastMessage: {
+          content: message.content,
+          senderId: currentUserObjectId,
+          timestamp: message.timestamp,
+        },
+      },
+    };
+
+    if (Object.keys(incUpdate).length > 0) {
+      chatUpdate.$inc = incUpdate;
+    }
+
+    await Chat.findByIdAndUpdate(chatId, chatUpdate);
+
+    logger.info('Message created, chat updated and emitted via socket', {
       userId: currentUserId,
       chatId,
       messageId: message._id,
+      otherParticipantIds,
     });
 
     res.status(201).json({

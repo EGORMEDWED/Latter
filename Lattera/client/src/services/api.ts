@@ -16,6 +16,7 @@ import type {
   GetMessagesResponse,
   GetPresignedMediaResponse,
   GetRedisHealthResponse,
+  MarkChatAsReadResponse,
   GetUserMediaFilesResponse,
   GetUserMediaStatsResponse,
   LoginRequest,
@@ -164,6 +165,13 @@ export const api = {
       return request<GetChatResponse>({
         method: "GET",
         url: `/chats/${chatId}`,
+      });
+    },
+
+    markAsRead(chatId: string): Promise<MarkChatAsReadResponse> {
+      return request<MarkChatAsReadResponse>({
+        method: "POST",
+        url: `/chats/${chatId}/read`,
       });
     },
   },

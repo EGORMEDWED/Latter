@@ -389,4 +389,38 @@ router.get(
   })
 );
 
+// POST /api/chats/:chatId/read - Mark chat as read (reset unreadCount for current user)
+router.post(
+  '/:chatId/read',
+  authMiddleware,
+  asyncHandler(async (req: Request, res: Response) => {
+    const { chatId } = req.params;
+    const currentUserId = req.user!.userId;
+    const currentUserObjectId = new Types.ObjectId(currentUserId);
+
+    if (!Types.ObjectId.isValid(chatId)) {
+      throw BadRequestError('Invalid chat ID format');
+    }
+
+    const chat = await Chat.findById(chatId);
+    if (!chat) {
+      throw NotFoundError('Chat not found');
+    }
+
+    const isParticipant = chat.participants.some(participant =>
+      participant.equals(currentUserObjectId)
+    );
+
+    if (!isParticipant) {
+      throw ForbiddenError('You do not have access to this chat');
+    }
+
+    await Chat.findByIdAndUpdate(chatId, {
+      $set: { [`unreadCount.${currentUserId}`]: 0 },
+    });
+
+    res.status(200).json({ message: 'Chat marked as read' });
+  })
+);
+
 export default router;
