@@ -12,6 +12,11 @@ import {
 import logger from '../utils/logger';
 import { getSocketHandler } from '../utils/socketManager';
 
+interface DeletedMessageData {
+  messageId: string;
+  chatId: string;
+}
+
 const router = Router();
 
 interface CreateMessageRequest {
@@ -465,15 +470,6 @@ router.delete(
         userId: currentUserId,
         messageId,
       });
-
-      // Broadcast deleted message via Socket.io
-      const socketHandler = getSocketHandler();
-      if (socketHandler) {
-        socketHandler.broadcastDeletedMessage({
-          messageId: messageId,
-          chatId: message.chatId.toString(),
-        });
-      }
     } else {
       // Soft delete - add user to deletedFor array
       const userIdStr = currentUserObjectId.toString();
@@ -490,6 +486,16 @@ router.delete(
         userId: currentUserId,
         messageId,
       });
+    }
+
+    // Broadcast deleted message via Socket.io for both cases
+    const socketHandler = getSocketHandler();
+    if (socketHandler) {
+      const deletedMessageData: DeletedMessageData = {
+        messageId: message._id.toString(),
+        chatId: message.chatId.toString(),
+      };
+      socketHandler.broadcastDeletedMessage(deletedMessageData);
     }
 
     res.status(200).json({
