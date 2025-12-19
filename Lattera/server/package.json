@@ -26,11 +26,8 @@
     "@types/mongoose": "^5.11.96",
     "@types/multer": "^1.4.11",
     "@types/node": "^20.19.27",
-<<<<<<< HEAD
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
-=======
->>>>>>> 96201ff60245a080daa5cad290a96bfc21f231c2
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
@@ -40,11 +37,8 @@
     "mongoose": "^8.9.5",
     "multer": "^1.4.5-lts.1",
     "socket.io": "^4.8.1",
-<<<<<<< HEAD
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
-=======
->>>>>>> 96201ff60245a080daa5cad290a96bfc21f231c2
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
     "uuid": "^13.0.0",
@@ -58,10 +52,7 @@
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
     "eslint": "^8.57.1",
-<<<<<<< HEAD
     "mongodb-memory-server": "^11.0.0",
-=======
->>>>>>> 96201ff60245a080daa5cad290a96bfc21f231c2
     "nodemon": "^3.1.11",
     "prettier": "^3.7.4"
   }

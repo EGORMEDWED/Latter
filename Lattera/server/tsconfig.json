@@ -19,9 +19,5 @@
     "emitDecoratorMetadata": true
   },
   "include": ["src/**/*"],
-<<<<<<< HEAD
-  "exclude": ["node_modules", "dist", "src/__tests__"]
-=======
-  "exclude": ["node_modules", "dist", "tests"]
->>>>>>> 96201ff60245a080daa5cad290a96bfc21f231c2
+  "exclude": ["node_modules", "dist", "src/__tests__", "tests"]
 }
