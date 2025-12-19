@@ -74,13 +74,32 @@ export default function MainChat({ onNavigate }: { onNavigate: NavigateFn }) {
 
   const handleChatSelect = useCallback(
     (chatId: string) => {
+      if (!user) return;
+
       setSelectedChatId(chatId);
       setMessages([]);
       setMessagesOffset(0);
       setTypingUsers(new Set());
-      loadMessages(chatId);
+
+      void (async () => {
+        await loadMessages(chatId);
+
+        try {
+          await api.chats.markAsRead(chatId);
+          setChats((prev) =>
+            prev.map((c) =>
+              c.id === chatId
+                ? { ...c, unreadCount: { ...c.unreadCount, [user.id]: 0 } }
+                : c
+            )
+          );
+        } catch (error) {
+          console.error('Error marking chat as read:', error);
+          addToast('error', 'Не удалось отметить чат как прочитанный');
+        }
+      })();
     },
-    [loadMessages]
+    [loadMessages, user, addToast]
   );
 
   const handleLoadMoreMessages = useCallback(() => {
@@ -196,7 +215,7 @@ export default function MainChat({ onNavigate }: { onNavigate: NavigateFn }) {
 
   // Subscribe to new messages
   useEffect(() => {
-    if (!selectedChatId) return;
+    if (!selectedChatId || !user) return;
 
     const unsubscribe = socketService.onNewMessage((message) => {
       if (message.chatId !== selectedChatId) return;
@@ -216,10 +235,24 @@ export default function MainChat({ onNavigate }: { onNavigate: NavigateFn }) {
 
         return [...prev, messageWithSender];
       });
+
+      if (message.senderId !== user.id) {
+        setChats((prev) =>
+          prev.map((c) =>
+            c.id === selectedChatId
+              ? { ...c, unreadCount: { ...c.unreadCount, [user.id]: 0 } }
+              : c
+          )
+        );
+
+        void api.chats
+          .markAsRead(selectedChatId)
+          .catch((error) => console.error('Error marking chat as read:', error));
+      }
     });
 
     return () => unsubscribe();
-  }, [selectedChatId]);
+  }, [selectedChatId, user]);
 
   // Subscribe to deleted messages
   useEffect(() => {
@@ -243,34 +276,37 @@ export default function MainChat({ onNavigate }: { onNavigate: NavigateFn }) {
       const unsubscribeNewMessage = socketService.onNewMessage(
         (message: MessageResponse) => {
           setChats((prev) =>
-            prev.map((chat) =>
-              chat.id === message.chatId
-                ? {
-                    ...chat,
-                    lastMessage: {
-                      content: message.content,
-                      senderId: message.senderId,
-                      timestamp: message.timestamp,
-                    },
-                    unreadCount:
-                      message.senderId !== user.id
-                        ? {
-                            ...chat.unreadCount,
-                            [user.id]: (chat.unreadCount[user.id] || 0) + 1,
-                          }
-                        : chat.unreadCount,
-                  }
-                : chat
-            )
+            prev.map((chat) => {
+              if (chat.id !== message.chatId) return chat;
+
+              const shouldIncrementUnread =
+                message.senderId !== user.id && message.chatId !== selectedChatId;
+
+              return {
+                ...chat,
+                lastMessage: {
+                  content: message.content,
+                  senderId: message.senderId,
+                  timestamp: message.timestamp,
+                },
+                unreadCount: shouldIncrementUnread
+                  ? {
+                      ...chat.unreadCount,
+                      [user.id]: (chat.unreadCount?.[user.id] || 0) + 1,
+                    }
+                  : chat.unreadCount,
+              };
+            })
           );
 
           // Move chat with new message to the beginning
           setChats((prev) => {
             const chatIndex = prev.findIndex((c) => c.id === message.chatId);
             if (chatIndex <= 0) return prev;
-            
-            const [chat] = prev.splice(chatIndex, 1);
-            return [chat, ...prev];
+
+            const next = [...prev];
+            const [chat] = next.splice(chatIndex, 1);
+            return [chat, ...next];
           });
         }
       );

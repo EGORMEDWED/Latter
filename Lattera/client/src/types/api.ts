@@ -181,6 +181,10 @@ export interface GetChatResponse {
   chat: ChatResponseData;
 }
 
+export interface MarkChatAsReadResponse {
+  message: string;
+}
+
 export interface MessageMedia {
   type: "image" | "audio" | "video";
   url: string;

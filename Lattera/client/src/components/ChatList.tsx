@@ -93,13 +93,13 @@ export default function ChatList({
             if (!otherParticipant) return null;
 
             const isOnline = onlineUsers.has(otherParticipant.id);
-            const unreadCount = chat.unreadCount[currentUserId] || 0;
+            const unreadCount = chat.unreadCount?.[currentUserId] || 0;
 
             return (
               <button
                 key={chat.id}
                 onClick={() => onChatSelect(chat.id)}
-                className={`w-full p-4 flex items-start gap-3 hover:bg-[#F3F4F6] transition-colors border-b border-[#E5E7EB] ${
+                className={`relative w-full p-4 flex items-start gap-3 hover:bg-[#F3F4F6] transition-colors border-b border-[#E5E7EB] ${
                   selectedChatId === chat.id ? 'bg-[#F9FBFF]' : ''
                 }`}
               >
@@ -133,9 +133,10 @@ export default function ChatList({
                     {chat.lastMessage?.content || 'Нет сообщений'}
                   </p>
                 </div>
+
                 {unreadCount > 0 && (
-                  <div className="flex-shrink-0 w-5 h-5 bg-[#2290FF] text-white text-xs rounded-full flex items-center justify-center font-semibold">
-                    {unreadCount > 9 ? '9+' : unreadCount}
+                  <div className="absolute top-2 right-2 bg-red-500 text-white text-xs rounded-full min-w-5 h-5 px-1 flex items-center justify-center font-bold">
+                    {unreadCount > 99 ? '99+' : unreadCount}
                   </div>
                 )}
               </button>
