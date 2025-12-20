@@ -12,7 +12,7 @@ interface TableProps<T> {
   onRowClick?: (row: T) => void;
 }
 
-export const Table = <T extends Record<string, unknown>>({ data, columns, onRowClick }: TableProps<T>) => {
+export const Table = <T extends Record<string, any>>({ data, columns, onRowClick }: TableProps<T>) => {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm text-left">
@@ -33,7 +33,7 @@ export const Table = <T extends Record<string, unknown>>({ data, columns, onRowC
               </td>
             </tr>
           ) : (
-            data.map((row, index) => (
+            data.map((row: T, index: number) => (
               <tr
                 key={index}
                 onClick={() => onRowClick?.(row)}
@@ -43,7 +43,7 @@ export const Table = <T extends Record<string, unknown>>({ data, columns, onRowC
               >
                 {columns.map((col) => (
                   <td key={col.key} className="px-6 py-4">
-                    {col.render ? col.render(row) : (row[col.key] as React.ReactNode)}
+                    {col.render ? col.render(row) : String(row[col.key] || '')}
                   </td>
                 ))}
               </tr>
