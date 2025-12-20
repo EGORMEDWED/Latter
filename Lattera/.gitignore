@@ -30,3 +30,9 @@ pnpm-debug.log*
 .DS_Store
 .idea/
 .vscode/
+
+# Docker
+.dockerignore
+Dockerfile
+docker-compose*.yml
+mongo-init.js

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Search, Trash2, User } from 'lucide-react';
+import { Search, Trash2, User as UserIcon } from 'lucide-react';
 import { Table } from '../components/Table';
 import { adminApi } from '../services/api';
 import type { User } from '../types';
@@ -49,7 +49,7 @@ export const Users: React.FC = () => {
     { key: 'username', label: 'Username', render: (user: User) => (
       <div className="flex items-center">
         <div className="bg-gray-200 rounded-full p-2 mr-3">
-          <User className="w-4 h-4 text-gray-600" />
+          <UserIcon className="w-4 h-4 text-gray-600" />
         </div>
         {user.username}
       </div>
